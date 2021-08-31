@@ -91,5 +91,149 @@ function identity4<Type>(arg: Type): Type {
 }
 
 let myIdentity: <Type>(arg: Type) => Type = identity4;
+// 我们也可以为 类型中的 泛型类型参数 使用不同的名称，
+// 只要类型变量的 数量 和类型变量的使用方式一致即可。
+function identity5<Type>(arg: Type): Type {
+    return arg;
+}
+
+let myIdentity1: <Input>(arg: Input) => Input = identity5;
+// 我们还可以将泛型类型写为 对象字面量类型的调用签名 （a call signature of an object literal type）：
+function identity6<Type>(arg: Type): Type {
+    return arg;
+}
+
+let myIdentity2: { <Type>(arg: Type): Type } = identity6;
+
+// 这会引导我们编写第一个通用接口。让我们从前面的例子中获取对象字面量，并将其移动到一个接口interface中：
+interface GenericIdentityFn {
+    <Type>(arg: Type): Type;
+}
+
+function identity7<Type>(arg: Type): Type {
+    return arg;
+}
+
+let myIdentity3: GenericIdentityFn = identity7;
+
+// 在类似的示例中，我们可能希望将泛型参数移动为整个接口的参数。
+// 这让我们可以看到我们通用的类型（例如 Dictionary<string> 而不仅仅是 Dictionary）。
+// 这使得类型参数对接口的所有其他成员可见。
+interface GenericIdentityFn1<Type> {
+    (arg: Type): Type;
+}
+
+function identity8<Type>(arg: Type): Type {
+    return arg;
+}
+
+let myIdentity4: GenericIdentityFn1<number> = identity8;
+
+// 请注意，我们的示例已更改为稍微不同的内容。
+// 我们现在有一个非泛型函数签名，它是泛型类型的一部分，而不是描述泛型函数。
+// 当我们使用 GenericIdentityFn 时，我们现在还需要指定相应的类型参数（此处：数字），有效地锁定底层调用签名将使用的内容。
+// 了解何时将类型参数直接放在调用签名上以及何时将其放在接口本身上将有助于描述类型的哪些方面是通用的。
+
+// 除了泛型接口，我们还可以创建泛型类。请注意，无法创建通用枚举和命名空间。
+/**
+ * Generic Classes 泛型类
+ * 泛型类具有与泛型接口相似的形状。泛型类在类名后面的尖括号 (<>) 中有一个泛型类型参数列表。
+ */
+class GenericNumber<NumType> {
+    zeroValue: NumType;
+    add: (x: NumType, y: NumType) => NumType;
+}
+
+let myGenericNumber = new GenericNumber<number>();
+myGenericNumber.zeroValue = 0;
+myGenericNumber.add = function (x, y) {
+    return x + y;
+};
+
+// 这是对 GenericNumber 类的非常直接的使用，但您可能已经注意到没有任何东西限制它只能使用数字类型。
+// 我们可以改用字符串或更复杂的对象。
+let stringNumeric = new GenericNumber<string>();
+stringNumeric.zeroValue = "";
+stringNumeric.add = function (x, y) {
+    return x + y;
+};
+
+console.log(stringNumeric.add(stringNumeric.zeroValue, "test"));
+// 就像接口一样，将类型参数放在类本身上可以确保类的所有属性都使用相同的类型。
+// 泛型类仅在实例而非静态端是泛型的，因此在使用类时，静态成员不能使用类的类型参数。
+
+/**
+ * Generic Constraints 泛型约束
+ * 如果您还记得之前的示例，您有时可能想要编写一个适用于一组类型的泛型函数，
+ * 您可以了解一组类型将具有哪些功能。
+ * 在我们的 loggingIdentity 示例中，我们希望能够访问 arg 的 .length 属性，
+ * 但编译器无法证明每个类型都有 .length 属性，因此它警告我们不能做出这个假设。
+ */
+function loggingIdentity3<Type>(arg: Type): Type {
+    console.log(arg.length);
+    return arg;
+}
+// 我们不想使用any和all类型，而是希望将此函数限制为使用也具有 .length 属性的用any和all类型。
+// 只要类型有这个成员，我们就会允许它，但至少需要有这个成员。
+// 为此，我们必须列出我们的需求作为对 Type 可以是什么的约束。
+interface Lengthwise {
+    length: number;
+}
+
+function loggingIdentity4<Type extends Lengthwise>(arg: Type): Type {
+    console.log(arg.length); // Now we know it has a .length property, so no more error
+    return arg;
+}
+// 由于泛型函数现在受到约束，它将不再适用于任何和所有类型：
+// 相反，我们需要传入类型具有所有必需属性的值：
+loggingIdentity4(1111);
+loggingIdentity({ length: 10, value: 3 });
 
 
+/**
+ * Using Type Parameters in Generic Constraints 在泛型约束中使用类型参数
+ * 您可以声明受另一个类型参数约束的类型参数。例如，这里我们想从一个给定名称的对象中获取一个属性。
+ * 我们想确保我们不会意外地获取 obj 上不存在的属性，因此我们将在两种类型之间放置一个约束：
+ */
+function getProperty<Type, Key extends keyof Type>(obj: Type, key: Key) {
+    return obj[key];
+}
+let x = { a: 1, b: 2, c: 3, d: 4 };
+
+getProperty(x, "a");
+getProperty(x, "m");
+
+/**
+ * Using Class Types in Generics 在泛型中使用类的类型
+ * 在 TypeScript 中使用泛型创建工厂时，需要通过它们的构造函数来引用类类型。例如，
+ */
+function create<Type>(c: { new(): Type }): Type {
+    return new c();
+}
+//   一个更高级的示例使用原型属性来推断和约束构造函数和类类型的实例端之间的关系
+class BeeKeeper {
+    hasMask: boolean = true;
+}
+
+class ZooKeeper {
+    nametag: string = "Mikle";
+}
+
+class Animal {
+    numLegs: number = 4;
+}
+
+class Bee extends Animal {
+    keeper: BeeKeeper = new BeeKeeper();
+}
+
+class Lion extends Animal {
+    keeper: ZooKeeper = new ZooKeeper();
+}
+
+function createInstance<A extends Animal>(c: new () => A): A {
+    return new c();
+}
+
+createInstance(Lion).keeper.nametag;
+createInstance(Bee).keeper.hasMask;

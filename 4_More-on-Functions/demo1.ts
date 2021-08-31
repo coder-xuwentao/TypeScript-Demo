@@ -30,8 +30,8 @@ function greeter1(fn: GreetFunction) {
  * 此时在对象类型中写一个调用签名
  */
 type DescribableFunction = {
-    description: string;
-    (someArg: number): boolean;
+    description: string; // 属性
+    (someArg: number): boolean; // 函数参数 和 返回类型
 };
 function doSomething(fn: DescribableFunction) {
     console.log(fn.description + " returned " + fn(6));
@@ -45,7 +45,7 @@ function doSomething(fn: DescribableFunction) {
 type SomeConstructor = {
     new(s: string): object;
 };
-function fn(ctor: SomeConstructor) {
+function fn1(ctor: SomeConstructor) {
     ctor("hi")
     return new ctor("hello");
 }
